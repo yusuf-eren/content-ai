@@ -7,6 +7,10 @@ import {
   SummarizeRequest,
   summarizeSchema,
   dubbingSchema,
+  generationsQuerySchema,
+  GenerationsRequest,
+  GenerationDetailRequest,
+  generationParamsSchema,
 } from './schemas.js';
 import { validate } from './validate.js';
 import { scrape } from './scrape.js';
@@ -89,23 +93,68 @@ app.post(
 app.get(
   '/generations',
   authMiddleware,
-  async (req: AuthRequest, res: Response) => {
+  validate(generationsQuerySchema, 'query'),
+  async (req: GenerationsRequest & AuthRequest, res: Response) => {
     try {
-      const { type } = req.query;
+      const validatedQuery = (req as any).validatedQuery || req.query;
+      const { page = 1, limit = 20, type } = validatedQuery;
+      
       const query: { userId: string; type?: string } = { userId: req.userId! };
       
-      if (type && ['summary', 'podcast', 'learning', 'voice_explanation'].includes(type as string)) {
-        query.type = type as string;
+      if (type && ['summary', 'podcast', 'learning', 'voice_explanation'].includes(type)) {
+        query.type = type;
       }
+
+      const skip = (page - 1) * limit;
 
       const generations = await Generation.find(query)
         .sort({ createdAt: -1 })
-        .select('-__v');
+        .skip(skip)
+        .limit(limit)
+        .select('_id type title createdAt')
+        .lean();
 
-      return res.status(200).json({ generations });
+      const total = await Generation.countDocuments(query);
+
+      return res.status(200).json({
+        generations,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
     } catch (error) {
       console.error('Fetch generations error:', error);
       return res.status(500).json({ error: 'Failed to fetch generations' });
+    }
+  }
+);
+
+app.get(
+  '/generations/:id',
+  authMiddleware,
+  validate(generationParamsSchema, 'params'),
+  async (req: GenerationDetailRequest & AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const generation = await Generation.findOne({
+        _id: id,
+        userId: req.userId!,
+      })
+        .select('-__v')
+        .lean();
+
+      if (!generation) {
+        return res.status(404).json({ error: 'Generation not found' });
+      }
+
+      return res.status(200).json({ generation });
+    } catch (error) {
+      console.error('Fetch generation detail error:', error);
+      return res.status(500).json({ error: 'Failed to fetch generation' });
     }
   }
 );

@@ -24,7 +24,18 @@ export const validate =
       });
     }
 
-    // overwrite with validated + coerced data
-    (req as any)[target] = result.data;
+    // Overwrite with validated + coerced data
+    // For query, store in a separate property since req.query is read-only in Express 5
+    if (target === 'query') {
+      (req as any).validatedQuery = result.data;
+      // Try to merge into req.query if possible
+      try {
+        Object.assign(req.query, result.data);
+      } catch {
+        // If assignment fails, validatedQuery will be used instead
+      }
+    } else {
+      (req as any)[target] = result.data;
+    }
     next();
   };
