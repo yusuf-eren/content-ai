@@ -1,6 +1,52 @@
 import 'dotenv/config';
 
 export async function scrape(url: string): Promise<string> {
+  if (
+    url.startsWith('https://www.reddit.com') ||
+    url.startsWith('https://reddit.com')
+  ) {
+    return await scrapeReddit(url);
+  } else {
+    return await scrapeWithFirecrawl(url);
+  }
+}
+
+async function scrapeReddit(url: string): Promise<string> {
+  const res = await fetch(url.replace(/\/$/, '') + '/.json');
+  const json = await res.json();
+
+  const post = json?.[0]?.data?.children?.[0]?.data;
+  const comments = json?.[1]?.data?.children || [];
+
+  let output = '';
+
+  if (post) {
+    output += `# Post\n`;
+    output += `Title: ${post.title || ''}\n`;
+    output += `Desc: ${post.selftext || '(no description)'}\n\n`;
+  }
+
+  output += `# Comments\n`;
+
+  function extractComments(nodes: any[], depth = 0): void {
+    for (const node of nodes) {
+      if (node.kind === 't1' && node.data?.body) {
+        const indent = '  '.repeat(depth);
+        output += `${indent}- ${node.data.body}\n`;
+        const replies = node.data.replies;
+        if (replies && typeof replies === 'object' && replies.data?.children) {
+          extractComments(replies.data.children, depth + 1);
+        }
+      }
+    }
+  }
+
+  extractComments(comments);
+
+  return output.trim();
+}
+
+async function scrapeWithFirecrawl(url: string): Promise<string> {
   const options = {
     method: 'POST',
     headers: {
@@ -27,7 +73,7 @@ export async function scrape(url: string): Promise<string> {
     }
     return data?.data?.markdown as string;
   } catch (error) {
-    throw new Error('Failed to scrape URL');
     console.error(error);
+    throw new Error('Failed to scrape URL');
   }
 }
