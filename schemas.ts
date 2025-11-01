@@ -10,7 +10,7 @@ export type SummarizeSchema = z.infer<typeof summarizeSchema>;
 export type SummarizeRequest = Request<{}, {}, SummarizeSchema>;
 
 export const dubbingSchema = z.object({
-  text: z.string(),
+  generationId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ObjectId'),
 });
 
 export type DubbingSchema = z.infer<typeof dubbingSchema>;

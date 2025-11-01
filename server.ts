@@ -19,6 +19,7 @@ import { generateAudioOpenAI } from './audio.js';
 import { authMiddleware, AuthRequest } from './middleware/auth.js';
 import { Generation } from './models/Generation.js';
 import authRoutes from './routes/auth.js';
+import { chunkText } from './utils/chunkText.js';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -68,24 +69,46 @@ app.post(
   validate(dubbingSchema, 'body'),
   async (req: DubbingRequest & AuthRequest, res: Response) => {
     try {
-      const { text } = req.body;
-      const audioBase64 = await generateAudioOpenAI(text);
+      const { generationId } = req.body;
 
-      const generation = new Generation({
-        userId: req.userId,
-        type: 'voice_explanation',
-        title: `Voice Explanation - ${text.slice(0, 50)}...`,
-        content: text,
-      });
-      await generation.save();
+      const generation = await Generation.findOne({
+        _id: generationId,
+        userId: req.userId!,
+      }).lean();
 
-      return res.status(201).json({
-        id: generation._id,
-        audio: audioBase64,
-      });
+      if (!generation) {
+        return res.status(404).json({ error: 'Generation not found' });
+      }
+
+      const text = generation.content;
+      const chunks = chunkText(text, 3);
+
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Transfer-Encoding', 'chunked');
+      res.status(200);
+
+      console.log('chunks', chunks.length);
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const audioBase64 = await generateAudioOpenAI(chunk);
+
+        res.write(
+          JSON.stringify({
+            chunkIndex: i,
+            totalChunks: chunks.length,
+            audio: audioBase64,
+            isLast: i === chunks.length - 1,
+          }) + '\n'
+        );
+      }
+
+      res.end();
     } catch (error) {
       console.error('Audio generation error:', error);
-      return res.status(500).json({ error: 'Failed to generate audio' });
+      if (!res.headersSent) {
+        return res.status(500).json({ error: 'Failed to generate audio' });
+      }
+      res.end();
     }
   }
 );
