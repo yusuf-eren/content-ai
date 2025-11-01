@@ -39,9 +39,14 @@ export const SUMMARIZATION_PROMPT = `<system_instructions>
   </constraints>
   
   <output_format type="markdown" json_schema={ title: string, summary: string }>
-    <structure>title is a string. summary is a markdown</structure>
+    <structure>title is a string. summary must be formatted as valid markdown with actual markdown syntax elements (headers with #, bullets with -, bold with **, code with backticks, etc.)</structure>
     <guidance>
-      Write a comprehensive technical summary in whatever format best captures the implementation details. Use natural paragraph form, bullet points, headers, or a mix as the content dictates. Focus on density and clarity of technical information, not adhering to a rigid template.
+      Write a comprehensive technical summary in valid markdown format that captures the implementation details. You MUST use actual markdown syntax:
+      - Use headers (# ## ###) to organize sections
+      - Use bullet points (- or *) for lists
+      - Use **bold** for emphasis on key terms
+      - Use code backticks for technical terms, config keys, or commands
+      - Use natural paragraph form, bullet points, headers, or a mix as the content dictates
       
       Common patterns that work well:
       - Brief intro statement followed by detailed bullet points
@@ -49,10 +54,23 @@ export const SUMMARIZATION_PROMPT = `<system_instructions>
       - Dense technical prose with inline specifications
       - Mixed format with paragraphs for concepts and bullets for specs
       
-      Let the source content determine the structure. Prioritize: maximum technical detail, implementable information, and clear organization.
+      Let the source content determine the structure. Prioritize: maximum technical detail, implementable information, and clear organization. The summary field MUST contain actual markdown syntax, not plain text.
     </guidance>
     <format>
-      Output format should be markdown parseable text. Use markdown elements for styling and formatting. Example: # Title \n ## Description \n ### Details \n ### Implementation \n ### Conclusion \n - Item 1 \n - Item 2 \n - Item 3 \n ### References \n - Reference 1 \n - Reference 2 \n - Reference 3 \n
+      The summary field must be formatted as valid markdown. Use markdown elements actively: headers (# ## ###), bullet points (- *), bold (**text**), code (backticks), etc. Example structure:
+
+## Architecture
+Main technical concept description here.
+
+### Implementation
+- Key point 1
+- Key point 2
+
+### Configuration
+Use config-key in backticks for setting value.
+
+## Performance
+Metrics and benchmarks here.
     </format>
   </output_format>
   
@@ -63,7 +81,7 @@ export const SUMMARIZATION_PROMPT = `<system_instructions>
     <criterion>A developer can determine if this is relevant to their technical requirements</criterion>
     <criterion>No information contradicts or misrepresents the source material</criterion>
     <criterion>Word count stays under 500 words</criterion>
-    <criterion>Output is valid markdown with natural formatting only</criterion>
+    <criterion>Output is valid markdown with actual markdown syntax (headers, bullets, bold, code blocks) - not plain text</criterion>
     <criterion>Every statement is verifiable against the source content</criterion>
     <criterion>No escape sequences used</criterion>
     <criterion>Format serves the content clarity and technical density</criterion>
@@ -141,19 +159,31 @@ export const ULTRA_SUMMARIZATION_PROMPT = `<system_instructions>
   </constraints>
   
   <output_format type="markdown" json_schema={ title: string, summary: string }>
-    <structure>title is a string. summary is a markdown</structure>
+    <structure>title is a string. summary must be formatted as valid markdown with actual markdown syntax elements (headers with #, bullets with -, bold with **, code with backticks, etc.)</structure>
     <guidance>
-      Write a tight technical summary in whatever format best captures the essential information. Use natural paragraph form, bullet points, or a mix as the content dictates. Focus on density of technical information, not adhering to a template.
+      Write a tight technical summary in valid markdown format. You MUST use actual markdown syntax:
+      - Use headers (# ## ###) to organize sections when needed
+      - Use bullet points (- or *) for lists
+      - Use **bold** for emphasis on key terms
+      - Use code backticks for technical terms, config keys, or commands
+      - Use natural paragraph form, bullet points, or a mix as the content dictates
       
       Examples of valid approaches:
-      - Short paragraph with key technical facts
-      - Bullet list of implementation details
-      - Mix of brief statement followed by specifics
+      - Short paragraph with key technical facts using markdown formatting
+      - Bullet list of implementation details with proper markdown bullets
+      - Mix of brief statement followed by specifics using headers and bullets
       
-      Let the content determine the structure. The only rule: maximum technical information in minimum words.
+      Let the content determine the structure. The only rule: maximum technical information in minimum words. The summary field MUST contain actual markdown syntax, not plain text.
     </guidance>
     <format>
-      Output format should be markdown parseable text. Use markdown elements for styling and formatting. Example: # Title \n ## Description \n ### Details \n ### Implementation \n ### Conclusion \n - Item 1 \n - Item 2 \n - Item 3 \n ### References \n - Reference 1 \n - Reference 2 \n - Reference 3 \n
+      The summary field must be formatted as valid markdown. Use markdown elements actively: headers (# ##), bullet points (- *), bold (**text**), code (backticks), etc. Example:
+
+## Key Technology
+Brief description with technical-term in backticks and **important** details.
+
+- Point 1
+- Point 2
+- Point 3
     </format>
   </output_format>
   

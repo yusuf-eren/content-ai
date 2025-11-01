@@ -44,8 +44,8 @@ export async function summarize(
   const summary = await llm
     .withStructuredOutput(
       z.object({
-        title: z.string(),
-        summary: z.string(),
+        title: z.string().describe('Title of the summary'),
+        summary: z.string().describe('Markdown-formatted technical summary with headers, bullet points, and formatting as appropriate'),
       })
     )
     .invoke(messages);
